@@ -1,20 +1,29 @@
 import { i18n } from './i18n'
 import { sdk } from './sdk'
+import {
+  ServiceId,
+  serviceBaseUrl,
+  servicePublished,
+  services,
+} from './backends'
 import { storeJson } from './fileModels/store.json'
-import { chromePort, meiliPort, uiPort, workerPresets } from './utils'
+import {
+  chromePort,
+  dataMount,
+  meiliPort,
+  primaryUrl,
+  uiPort,
+  workerPresets,
+} from './utils'
 
 export const main = sdk.setupMain(async ({ effects }) => {
   console.info(i18n('Starting Karakeep!'))
 
-  // Generated once on install by init/seedFiles.ts.
   const nextAuthSecret =
     (await storeJson.read((s) => s.nextAuthSecret).const(effects)) ?? ''
   const meiliMasterKey =
     (await storeJson.read((s) => s.meiliMasterKey).const(effects)) ?? ''
-  // Selected by the user via the "Set Primary URL" action (init/taskSetPrimaryUrl.ts
-  // seeds a default on install). Reactive so NEXTAUTH_URL — and therefore the
-  // daemon — updates if the choice changes later.
-  const domain = (await storeJson.read((s) => s.domain).const(effects)) ?? ''
+  const url = await primaryUrl.bestUsable(effects).const()
   const signupsDisabled = await storeJson
     .read((s) => s.signupsDisabled)
     .const(effects)
@@ -24,14 +33,29 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // Read per field, like the settings above, so a change to any one of them
   // re-runs this handler and restarts the daemon.
   const aiProvider = await storeJson.read((s) => s.ai?.provider).const(effects)
-  const aiBaseUrl = await storeJson.read((s) => s.ai?.baseUrl).const(effects)
-  const aiApiKey = await storeJson.read((s) => s.ai?.apiKey).const(effects)
-  const aiTextModel = await storeJson
-    .read((s) => s.ai?.textModel)
-    .const(effects)
-  const aiImageModel = await storeJson
-    .read((s) => s.ai?.imageModel)
-    .const(effects)
+  const onServer = aiProvider?.startsWith('local-')
+    ? (aiProvider.slice('local-'.length) as ServiceId)
+    : null
+  const aiBaseUrl = onServer
+    ? await serviceBaseUrl(effects, onServer, 'const')
+    : await storeJson.read((s) => s.ai?.baseUrl).const(effects)
+  const aiApiKey = onServer
+    ? await servicePublished(effects, onServer, 'apiKey', 'const')
+    : await storeJson.read((s) => s.ai?.apiKey).const(effects)
+  const aiProtocol = onServer ? services[onServer].protocol : aiProvider
+  // vLLM publishes the name of the one model it serves; llama.cpp serves one
+  // model and ignores the name sent.
+  const servedModel =
+    onServer === 'vllm'
+      ? await servicePublished(effects, 'vllm', 'model', 'const')
+      : onServer === 'llama-cpp'
+        ? 'llama-cpp'
+        : null
+  const aiTextModel =
+    servedModel ?? (await storeJson.read((s) => s.ai?.textModel).const(effects))
+  const aiImageModel =
+    servedModel ??
+    (await storeJson.read((s) => s.ai?.imageModel).const(effects))
   const aiAutoSummarize = await storeJson
     .read((s) => s.ai?.autoSummarize)
     .const(effects)
@@ -42,10 +66,13 @@ export const main = sdk.setupMain(async ({ effects }) => {
     .read((s) => s.ai?.embeddingDimensions)
     .const(effects)
   const aiEnv: Record<string, string> =
-    !aiProvider || aiProvider === 'none'
+    !aiProvider ||
+    aiProvider === 'none' ||
+    (onServer && !aiBaseUrl) ||
+    (onServer === 'vllm' && !servedModel)
       ? {}
       : {
-          ...(aiProvider === 'ollama'
+          ...(aiProtocol === 'ollama'
             ? { OLLAMA_BASE_URL: aiBaseUrl ?? '' }
             : {
                 OPENAI_API_KEY: aiApiKey ?? '',
@@ -65,42 +92,23 @@ export const main = sdk.setupMain(async ({ effects }) => {
             : { EMBEDDING_ENABLE_AUTO_INDEXING: 'false' }),
         }
 
-  const meilisearchSub = sdk.SubContainer.of(
-    effects,
-    { imageId: 'meilisearch' },
-    sdk.Mounts.of().mountVolume({
-      volumeId: 'main',
-      subpath: 'meilisearch',
-      mountpoint: '/meili_data',
-      readonly: false,
-    }),
-    'meilisearch-sub',
-  )
-
-  const chromeSub = sdk.SubContainer.of(
-    effects,
-    { imageId: 'chrome' },
-    sdk.Mounts.of(),
-    'chrome-sub',
-  )
-
-  const karakeepSub = sdk.SubContainer.of(
-    effects,
-    { imageId: 'karakeep' },
-    sdk.Mounts.of().mountVolume({
-      volumeId: 'main',
-      subpath: 'data',
-      mountpoint: '/data',
-      readonly: false,
-    }),
-    'karakeep-sub',
-  )
-
   return sdk.Daemons.of(effects)
     .addDaemon('meilisearch', {
-      subcontainer: meilisearchSub,
+      subcontainer: sdk.SubContainer.of(
+        effects,
+        { imageId: 'meilisearch' },
+        sdk.Mounts.of().mountVolume({
+          volumeId: 'main',
+          subpath: 'meilisearch',
+          mountpoint: '/meili_data',
+          readonly: false,
+        }),
+        'meilisearch-sub',
+      ),
       exec: {
-        command: sdk.useEntrypoint(),
+        // The image's entrypoint is tini, which warns when it is not PID 1.
+        command: ['/bin/meilisearch'],
+        cwd: '/meili_data',
         env: {
           MEILI_MASTER_KEY: meiliMasterKey,
           MEILI_NO_ANALYTICS: 'true',
@@ -124,7 +132,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
       requires: [],
     })
     .addDaemon('chrome', {
-      subcontainer: chromeSub,
+      subcontainer: sdk.SubContainer.of(
+        effects,
+        { imageId: 'chrome' },
+        sdk.Mounts.of(),
+        'chrome-sub',
+      ),
       exec: {
         command: sdk.useEntrypoint([
           '--disable-gpu',
@@ -147,7 +160,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
       requires: [],
     })
     .addDaemon('karakeep', {
-      subcontainer: karakeepSub,
+      subcontainer: sdk.SubContainer.of(
+        effects,
+        { imageId: 'karakeep' },
+        dataMount,
+        'karakeep-sub',
+      ),
       exec: {
         command: sdk.useEntrypoint(),
         // Bundles s6-overlay, which must run as PID 1.
@@ -155,7 +173,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         env: {
           DATA_DIR: '/data',
           NEXTAUTH_SECRET: nextAuthSecret,
-          NEXTAUTH_URL: domain || `http://localhost:${uiPort}`,
+          NEXTAUTH_URL: url ?? `http://localhost:${uiPort}`,
           MEILI_ADDR: `http://127.0.0.1:${meiliPort}`,
           MEILI_MASTER_KEY: meiliMasterKey,
           BROWSER_WEB_URL: `http://127.0.0.1:${chromePort}`,

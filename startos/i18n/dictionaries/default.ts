@@ -17,22 +17,21 @@ const dict = {
   'Disable Signups': 10,
   'Signups are currently disabled. Run this action to permit new account creation.': 11,
   'Signups are currently enabled. Run this action to prohibit new account creation.': 12,
-  'Anyone with your Karakeep URL will be able to create an account on your server — and the first account to sign up becomes an admin. Be careful!': 13,
-  // actions/setPrimaryUrl.ts
+  'Anyone who can reach your Karakeep address will be able to create an account on your server.': 13,
+  // utils.ts (Set Primary URL)
   URL: 14,
   'Set Primary URL': 15,
-  'Choose which of your Karakeep addresses is used for NEXTAUTH_URL — the address Karakeep anchors its login and OAuth callback links to.': 16,
-  // init/taskSetPrimaryUrl.ts
-  'Primary URL is no longer available. Select a new one.': 17,
-  // init/taskToggleSignups.ts
-  'After creating your first account (which becomes the admin), you should run the Toggle Signups action to disable further registrations. As it stands, anyone with your Karakeep URL can create an account on your server.': 18,
+  'Choose the address Karakeep puts in the links it generates, such as sign-in callbacks. Karakeep restarts to apply the change.': 16,
+  // init/taskSetAdminPassword.ts, actions/setAdminPassword.ts
+  'Create the Karakeep administrator account and its password': 17,
+  'Set Admin Password': 18,
   // actions/configureAi.ts
   'Configure AI': 19,
-  'Connect Karakeep to an Ollama server or an OpenAI-compatible API for automatic tagging and summaries.': 20,
+  'Connect Karakeep to an AI service on this server, or to any Ollama or OpenAI-compatible server, for automatic tagging and summaries.': 20,
   Provider: 21,
   Disabled: 22,
-  Ollama: 23,
-  'OpenAI-compatible': 24,
+  'Ollama server (by URL)': 23,
+  'OpenAI-compatible server (by URL)': 24,
   'Server URL': 25,
   'API Key': 26,
   'Text Model': 27,
@@ -51,6 +50,22 @@ const dict = {
   'Low: slow hardware (5 search, 2 embedding jobs)': 40,
   'Medium (20 search, 5 embedding jobs)': 41,
   'High: fast hardware (50 search, 10 embedding jobs)': 42,
+  'Generate a new random password for the Karakeep administrator account. Replaces any existing password.': 43,
+  'Replaces the current admin password and signs the administrator out of every device.': 44,
+  'Admin Credentials': 45,
+  'Sign in to Karakeep with this email and password.': 46,
+  Email: 47,
+  Password: 48,
+  'Ollama (on this server)': 49,
+  'vLLM (on this server)': 50,
+  'llama.cpp (on this server)': 51,
+  'Available on this service:': 52,
+  'This service has no models yet. Add one to it first.': 53,
+  "This service isn't running, so its models can't be listed. Enter the model's name.": 54,
+  'Not available on this service:': 55,
+  'Could not get an embedding from this model:': 56,
+  'the request timed out': 57,
+  "Semantic search needs this service installed and running, to read the embedding model's dimensions. Install it, or save with Semantic Search disabled.": 58,
 } as const
 
 /**

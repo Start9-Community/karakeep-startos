@@ -5,15 +5,15 @@ export const manifest = setupManifest({
   id: 'karakeep',
   title: 'Karakeep',
   license: 'AGPL-3.0',
-  packageRepo: 'https://github.com/Jolls/karakeep-startos',
+  packageRepo: 'https://github.com/Start9-Community/karakeep-startos',
   upstreamRepo: 'https://github.com/karakeep-app/karakeep',
-  marketingUrl: 'https://karakeep.app',
+  marketingUrl: 'https://karakeep.com',
   donationUrl: 'https://github.com/sponsors/MohamedBassem',
   description: { short, long },
   // 'main' holds this package's own store.json (generated secrets) plus two
   // subpaths: the karakeep DATA_DIR (sqlite db + assets) and meilisearch's
   // index data (main.ts).
-  volumes: ['main'],
+  volumes: ['main', 'startos'],
   images: {
     // Official multi-arch image. Confirmed on ghcr.io 2026-09-01: amd64 + arm64.
     karakeep: {

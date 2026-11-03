@@ -2,111 +2,122 @@
 
 ## Documentation
 
-- [Karakeep documentation](https://docs.karakeep.app) — the full upstream user guide, including browser extensions, mobile apps, and the API.
-- [Configuration reference](https://docs.karakeep.app/configuration) — every environment variable Karakeep supports (most are not applicable on StartOS since this package manages them for you).
+- [Using Karakeep](https://github.com/karakeep-app/karakeep/tree/main/docs/docs/04-using-karakeep) — bookmarking, lists, tags, importing, and the search query language.
+- [Integrations](https://github.com/karakeep-app/karakeep/tree/main/docs/docs/05-integrations) — the command-line tool, MCP server, SingleFile, RSS feeds, and agent skills.
+- [AI providers](https://github.com/karakeep-app/karakeep/blob/main/docs/docs/03-configuration/02-different-ai-providers.md) — which models work for tagging and how to set them up.
+- [FAQ](https://github.com/karakeep-app/karakeep/blob/main/docs/docs/06-administration/02-FAQ.md) — common questions from people running Karakeep.
 
 ## What you get on StartOS
 
-This package runs the Karakeep web app together with the headless-Chrome
-crawler it uses for page archival/screenshots and the Meilisearch index it
-uses for full-text search — all three as part of a single service, with a
-single **Web Interface** exposed. Your bookmarks, notes, images, and search
-index all live on your server's storage.
+Karakeep runs with its own page-archiving browser and search index, behind a
+single **Web Interface**. Your bookmarks, notes, images, archived pages, and
+search index all live on your server. The administrator account is created for
+you, and sign-ups are closed unless you open them.
 
 ## Getting set up
 
-1. Open the **Web Interface**. You'll land on Karakeep's sign-up page —
-   there's no separate account-creation step on StartOS.
-2. Create an account. **The first account created becomes the administrator**
-   — there is no separate admin password to retrieve.
-3. Once you've signed in, run the **Toggle Signups** action to disable
-   further registrations. Until you do, anyone who has your service's URL
-   can create their own account on your server.
+1. Run the **Set Admin Password** task. It shows the administrator's email and
+   password — save the password in your password manager; it is shown only
+   once.
+2. Start Karakeep and open the **Web Interface**.
+3. Sign in with that email and password.
+
+To give someone else an account, either create it under **Admin Settings →
+Users** in Karakeep, or run **Disable Signups**/**Enable Signups** to let them
+sign up, and run it again afterwards to close sign-ups.
 
 ## Using Karakeep
 
 ### Web interface
 
-After signing in you'll land on your bookmark dashboard, where you can save
-links, notes, and images, browse your tags, and search across everything
-you've saved.
+After signing in you land on your bookmark dashboard, where you save links,
+notes, and images, browse your tags, and search everything you've saved.
+
+Karakeep fetches each page you bookmark from your server. If you publish
+Karakeep through a tunnel to keep your home IP private, send its outbound
+traffic through that tunnel too; otherwise the sites you bookmark see your home
+IP. If you use the tunnel for another reason, there is nothing to change.
 
 ### Actions
 
-- **Toggle Signups** — enable or disable new account creation. Its label
-  reflects the current state ("Enable Signups" or "Disable Signups").
-- **Set Primary URL** — choose which of your service's addresses Karakeep
-  uses for login and OAuth callback links, if you have more than one
-  address configured.
-- **Configure AI** — connect Karakeep to an AI model so it can tag your
-  bookmarks (and optionally summarize them) automatically. Choose **Ollama**
-  and enter the address of an Ollama server, or **OpenAI-compatible** for
-  OpenAI or any service with the same API. Then enter the text and image
-  model names. The API key is required even for a local server such as
-  Ollama, which ignores it — enter any placeholder like `ollama`. You can
-  also turn on **Semantic Search** here (see below). Karakeep restarts when
-  you save.
-
-- **Set Performance** — choose **Low**, **Medium**, or **High** to match your
-  hardware. This controls how many search and embedding jobs run at once. Pick
-  a lower setting if your server becomes sluggish while Karakeep indexes a
-  large library; higher settings index faster. Karakeep restarts when you save.
-
-## Using the command line or an AI assistant
-
-Karakeep's official command-line tool, `karakeep`, works against your
-server, and so does the upstream
-[agent skill](https://docs.karakeep.app/integrations/agentic-skills) that
-teaches an AI assistant to use it for searching, saving, and organizing
-bookmarks. You need an API key and your service's address.
-
-1. In Karakeep, open **Settings → API Keys** and create a key.
-2. Install the tool with `npm install -g @karakeep/cli`.
-3. Run `karakeep auth init`. Enter one of your service's addresses (the one
-   you use for **Web Interface**) and the API key, then check it with
-   `karakeep whoami`.
-
-Your computer must be able to reach that address, so a LAN address only
-works while you are on your home network. If `whoami` says `fetch failed`
-for an `https` address, Node doesn't trust your server's certificate yet;
-install your StartOS root CA on your computer and run the tool with
-`NODE_OPTIONS=--use-system-ca`.
-
-`karakeep bookmarks search` takes the same search syntax as the web
-interface, and its `semantic` and `hybrid` modes only work once you have set
-up semantic search (see below). `karakeep bookmarks add --asset` uploads a
-PDF or image, and `--json` makes any command's output machine-readable.
+- **Set Admin Password** — generates a new password for the administrator and
+  signs the administrator out everywhere. Run it if you lose the password.
+- **Enable Signups** / **Disable Signups** — opens or closes Karakeep's sign-up
+  page. Closed is the safe default: while it is open, anyone who can reach your
+  Karakeep address can create an account.
+- **Set Primary URL** — chooses the address Karakeep uses in the links it
+  creates, and the one **Open UI** opens. If you pick an `https` address, sign
+  in over `https` addresses only.
+- **Configure AI** — connects Karakeep to an AI model so it tags your
+  bookmarks (and optionally summarizes them). See below.
+- **Set Performance** — **Low**, **Medium**, or **High**: how many indexing
+  jobs run at once. Pick a lower setting if your server becomes sluggish while
+  Karakeep indexes a large library.
 
 ## Using AI tagging
 
-Karakeep doesn't run a model itself — it needs an Ollama server (or an
-OpenAI-compatible API) it can reach, such as another computer on your home
-network. Make sure that server is listening on the network (for Ollama, set
-`OLLAMA_HOST=0.0.0.0`) and that you've pulled the models you want to use.
+Karakeep doesn't run a model itself. It uses Ollama, vLLM or llama.cpp
+installed on this server, or any Ollama or OpenAI-compatible server it can
+reach, such as another computer on your home network. Make sure the models you
+want are already available on it.
 
-1. Run **Configure AI** and enter the server address, for example
-   `http://192.168.1.50:11434`, and your model names.
+1. Run **Configure AI** and choose a provider:
+   - **Ollama**, **vLLM** or **llama.cpp (on this server)** — Karakeep fills in
+     its address and API key. If it isn't installed yet, StartOS shows the
+     missing dependency on Karakeep's page; install it from the Marketplace.
+     The service must stay running for AI to work.
+   - **Ollama server (by URL)** or **OpenAI-compatible server (by URL)** —
+     enter the address (for example `http://192.168.1.50:11434`). Make sure
+     the server listens on the network (for Ollama, set `OLLAMA_HOST=0.0.0.0`).
+     An OpenAI-compatible server needs an API key even if it ignores it —
+     enter any placeholder like `ollama`.
+
+   - **vLLM** and **llama.cpp** serve one model, chosen with their own
+     **Set Model** action, and Karakeep uses it — there's nothing more to
+     enter. Image tagging works only if that model reads images. Semantic
+     search isn't available with them.
+   - For the others, enter the text and image model names. For **Ollama
+     (on this server)** the form lists the models Ollama has, and saving
+     fails if you name one it doesn't; add models to Ollama first, for
+     example from Open WebUI.
+
 2. Add a bookmark. Tags appear shortly after Karakeep finishes fetching the
    page.
 
 AI only runs on new bookmarks. To process ones you already have, open
 **Admin Settings** in Karakeep and use **Regenerate AI Tags** (or summaries).
 This queues every bookmark, so on a large library it can take many hours and
-keeps your AI server busy the whole time. If the AI server is offline, those
-jobs fail; run **Regenerate AI Tags → Failed Bookmarks Only** once it is back.
+keeps your AI server busy throughout. If the AI server is offline, those jobs
+fail; run **Regenerate AI Tags → Failed Bookmarks Only** once it is back.
 
 ## Using semantic search
 
 Semantic search finds bookmarks by meaning, not just matching words. It needs
-an embedding model on the same Ollama or OpenAI-compatible server you use for
-tagging — for Ollama, pull one first.
+an embedding model on the same server you use for tagging — for Ollama, pull
+one first.
 
 1. Run **Configure AI**, set **Semantic Search** to **Enabled**, and enter the
    embedding model's name. When you save, Karakeep asks your server for a test
-   embedding, so the model must already be available there; if the server
-   can't be reached or doesn't have the model, the save fails with the reason.
+   embedding, so the model must already be available; if it can't be reached,
+   the save fails with the reason.
 2. Add a bookmark. Karakeep embeds new bookmarks as it processes them.
 
-Bookmarks you already have are not embedded automatically. In Karakeep's
-**Admin Settings**, use **Regenerate Embeddings for All Bookmarks** under
-**Embedding Jobs**. Do the same if you later change the embedding model.
+Bookmarks you already have are not embedded automatically. In **Admin
+Settings**, use **Regenerate Embeddings for All Bookmarks** under **Embedding
+Jobs**. Do the same if you later change the embedding model.
+
+## Using the command line or an AI assistant
+
+Karakeep's command-line tool, `karakeep`, works against your server, and so
+does the upstream agent skill that teaches an AI assistant to use it. You need
+an API key and your service's address.
+
+1. In Karakeep, open **Settings → API Keys** and create a key.
+2. Install the tool with `npm install -g @karakeep/cli`.
+3. Run `karakeep auth init`, enter the address you use for the **Web
+   Interface** and the API key, then check it with `karakeep whoami`.
+
+A LAN address only works while you are on your home network. If `whoami` says
+`fetch failed` for an `https` address, your computer doesn't trust your
+server's certificate yet: install your StartOS root CA and run the tool with
+`NODE_OPTIONS=--use-system-ca`.

@@ -5,8 +5,7 @@ import { versionGraph } from '../versions'
 import { actions } from '../actions'
 import { restoreInit } from '../backups'
 import { seedFiles } from './seedFiles'
-import { taskSetPrimaryUrl } from './taskSetPrimaryUrl'
-import { taskToggleSignups } from './taskToggleSignups'
+import { taskSetAdminPassword } from './taskSetAdminPassword'
 
 export const init = sdk.setupInit(
   restoreInit,
@@ -15,8 +14,7 @@ export const init = sdk.setupInit(
   actions,
   dependencies,
   seedFiles,
-  taskSetPrimaryUrl,
-  taskToggleSignups,
+  taskSetAdminPassword,
 )
 
 export const uninit = sdk.setupUninit(versionGraph)

@@ -1,7 +1,10 @@
 {
   "name": "karakeep-startos",
   "dependencies": {
-    "@start9labs/start-sdk": "3.1.1"
+    "@start9labs/start-sdk": "3.1.1",
+    "llama-cpp-startos": "github:Start9Labs/llama-cpp-startos#next",
+    "ollama-startos": "github:Start9Labs/ollama-startos#next",
+    "vllm-startos": "github:Start9Labs/vllm-startos#next"
   },
   "overrides": {
     "@start9labs/start-sdk": "$@start9labs/start-sdk"

@@ -1,11 +1,13 @@
-import { configureAi } from './configureAi'
 import { sdk } from '../sdk'
+import { primaryUrl } from '../utils'
+import { configureAi } from './configureAi'
+import { setAdminPassword } from './setAdminPassword'
 import { setPerformance } from './setPerformance'
-import { setPrimaryUrl } from './setPrimaryUrl'
 import { toggleSignups } from './toggleSignups'
 
 export const actions = sdk.Actions.of()
+  .addAction(setAdminPassword)
   .addAction(toggleSignups)
-  .addAction(setPrimaryUrl)
+  .addAction(primaryUrl.action)
   .addAction(configureAi)
   .addAction(setPerformance)
