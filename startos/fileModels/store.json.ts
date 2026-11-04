@@ -2,32 +2,31 @@ import { FileHelper, z } from '@start9labs/start-sdk'
 import { sdk } from '../sdk'
 
 const shape = z.looseObject({
-  // Signs NextAuth's JWT session tokens. Generated once on install; no
-  // .catch() default on purpose — it must be a real random value, never a
-  // static fallback every install would otherwise share.
+  // Generated once on install (init/seedFiles.ts); never a static fallback.
   nextAuthSecret: z.string().optional().catch(undefined),
-  // Meilisearch's own auth key. Generated once on install and shared between
-  // the meilisearch daemon (MEILI_MASTER_KEY) and karakeep (MEILI_MASTER_KEY)
-  // so karakeep can query the index.
   meiliMasterKey: z.string().optional().catch(undefined),
-  // Full URL (e.g. https://karakeep.mydomain.local) used for NextAuth's
-  // NEXTAUTH_URL, which anchors auth callback/redirect URLs. Picked from the
-  // service's own interfaces (init/taskSetPrimaryUrl.ts, actions/setPrimaryUrl.ts).
+  // Written by Set Admin Password; the administrator's current password.
+  adminPassword: z.string().optional().catch(undefined),
+  // The primary URL (Set Primary URL), passed as NEXTAUTH_URL.
   domain: z.string().catch(''),
-  // Mirrors karakeep's DISABLE_SIGNUPS env var. Karakeep has no admin-bootstrap
-  // API — the first account a user signs up with becomes admin automatically
-  // — so signups start enabled and this flips to true once the user runs the
-  // Toggle Signups action after creating that first account.
-  signupsDisabled: z.boolean().catch(false),
-  // Set by the Set Performance action; mapped to SEARCH_NUM_WORKERS and
-  // EMBEDDING_NUM_WORKERS via workerPresets in utils.ts. 'high' matches the
-  // values earlier releases hard-coded.
+  // Mirrors karakeep's DISABLE_SIGNUPS; flipped by Toggle Signups.
+  signupsDisabled: z.boolean().catch(true),
+  // Set Performance; mapped via workerPresets in utils.ts.
   performance: z.enum(['low', 'medium', 'high']).catch('high'),
-  // Set by the Configure AI action; mapped to karakeep's OLLAMA_*/OPENAI_*/
-  // INFERENCE_* env vars in main.ts.
+  // Configure AI; mapped to karakeep's AI env vars in main.ts.
   ai: z
     .looseObject({
-      provider: z.enum(['none', 'ollama', 'openai']).catch('none'),
+      // `local-<id>` is that AI package on this server; `ollama`/`openai` take a URL.
+      provider: z
+        .enum([
+          'none',
+          'ollama',
+          'openai',
+          'local-ollama',
+          'local-vllm',
+          'local-llama-cpp',
+        ])
+        .catch('none'),
       baseUrl: z.string().catch(''),
       apiKey: z.string().catch(''),
       textModel: z.string().catch(''),

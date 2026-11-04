@@ -47,6 +47,14 @@ Upstream is tracked as three independently pinned prebuilt Docker images in
    `NEXTAUTH_SECRET`, `MEILI_ADDR`, `MEILI_MASTER_KEY`, `BROWSER_WEB_URL`,
    `DISABLE_SIGNUPS`, and the `/api/health` route. A renamed or removed
    variable breaks `startos/main.ts` silently until someone hits it.
-4. Rebuild (`make`) and reinstall on a real StartOS box — confirm all three
+4. **Set Admin Password** (`startos/actions/setAdminPassword.ts`) writes the
+   admin account straight into `db.db`, mirroring upstream's `User.createRaw`
+   and `setUserPassword` (`packages/trpc/models/users.ts`, `packages/trpc/auth.ts`).
+   Diff those, the `user`/`account`/`session` tables in `packages/db/schema.ts`,
+   and the image's `/db_migrations` and
+   `/app/apps/workers/node_modules/@karakeep/{db,trpc}` layout between tags.
+   After the bump, run the action on an existing install and sign in with the
+   result.
+5. Rebuild (`make`) and reinstall on a real StartOS box — confirm all three
    daemons start, the web UI signs in, and search/crawling still work
    against the new versions.

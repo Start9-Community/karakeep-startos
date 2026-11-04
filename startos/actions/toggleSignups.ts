@@ -2,9 +2,6 @@ import { storeJson } from '../fileModels/store.json'
 import { i18n } from '../i18n'
 import { sdk } from '../sdk'
 
-// Karakeep's DISABLE_SIGNUPS env var only takes effect on daemon restart —
-// main.ts reads signupsDisabled reactively via .const(), so flipping this
-// value here restarts the karakeep daemon automatically.
 export const toggleSignups = sdk.Action.withoutInput(
   // id
   'toggle-signups',
@@ -26,7 +23,7 @@ export const toggleSignups = sdk.Action.withoutInput(
           ),
       warning: disabled
         ? i18n(
-            'Anyone with your Karakeep URL will be able to create an account on your server — and the first account to sign up becomes an admin. Be careful!',
+            'Anyone who can reach your Karakeep address will be able to create an account on your server.',
           )
         : null,
       allowedStatuses: 'any',
@@ -37,12 +34,8 @@ export const toggleSignups = sdk.Action.withoutInput(
 
   // handler
   async ({ effects }) => {
-    const disabled = await storeJson
-      .read((s) => s.signupsDisabled)
-      .const(effects)
-
     await storeJson.merge(effects, {
-      signupsDisabled: !disabled,
+      signupsDisabled: !(await storeJson.read((s) => s.signupsDisabled).once()),
     })
   },
 )
