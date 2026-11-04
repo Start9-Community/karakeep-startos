@@ -38,9 +38,7 @@ Upstream is tracked as three independently pinned prebuilt Docker images in
 1. Update `images.karakeep.source.dockerTag` (and `images.meilisearch.source.dockerTag`
    if upstream's compose file moved it) in `startos/manifest/index.ts`.
 2. Bump the version in `startos/versions/current.ts` to match
-   (`<upstream-version-without-v>:0`) and update its release notes. Add a new
-   version file only if this release also needs a migration — see
-   `start-technologies/projects/start-sdk/docs/src/versions.md`.
+   (`<upstream-version-without-v>:0`).
 3. Before bumping, diff upstream's `packages/shared/config.ts` (env var
    options) and `docker/docker-compose.yml` between the old and new tag for
    anything this package relies on: `DATA_DIR`, `NEXTAUTH_URL`,
@@ -53,8 +51,3 @@ Upstream is tracked as three independently pinned prebuilt Docker images in
    Diff those, the `user`/`account`/`session` tables in `packages/db/schema.ts`,
    and the image's `/db_migrations` and
    `/app/apps/workers/node_modules/@karakeep/{db,trpc}` layout between tags.
-   After the bump, run the action on an existing install and sign in with the
-   result.
-5. Rebuild (`make`) and reinstall on a real StartOS box — confirm all three
-   daemons start, the web UI signs in, and search/crawling still work
-   against the new versions.
