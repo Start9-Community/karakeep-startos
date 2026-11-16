@@ -27,7 +27,7 @@ const email = db
     if (!user) {
       user = { id: createId(), email: process.env.EMAIL }
       db.prepare(
-        "INSERT INTO user (id, name, email, emailVerified, role, createdAt, updatedAt) VALUES (?, 'Admin', ?, 0, 'admin', ?, ?)",
+        "INSERT INTO user (id, name, email, emailVerified, role, bookmarkClickAction, createdAt, updatedAt) VALUES (?, 'Admin', ?, 0, 'admin', 'expand_bookmark_preview', ?, ?)",
       ).run(user.id, user.email, now, now)
     }
     db.prepare(

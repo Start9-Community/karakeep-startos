@@ -38,22 +38,23 @@ Three upstream images run as three subcontainers, each its own daemon, sharing
 this package's loopback network namespace, so each reaches the others at
 `127.0.0.1:<port>` where upstream's `docker-compose.yml` uses service names.
 
-| Subcontainer      | Image                                                          | Purpose                                                          |
-| ----------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `karakeep-sub`    | `ghcr.io/karakeep-app/karakeep`                                | The Next.js app server (web UI, API and background workers)      |
-| `chrome-sub`      | `ghcr.io/karakeep-app/karakeep-chrome` (via root `Dockerfile`) | Headless Chrome the crawler drives for page archival/screenshots |
-| `meilisearch-sub` | `getmeili/meilisearch`                                         | Full-text and vector search index                                |
+| Subcontainer      | Image                                  | Purpose                                                          |
+| ----------------- | -------------------------------------- | ---------------------------------------------------------------- |
+| `karakeep-sub`    | `ghcr.io/karakeep-app/karakeep`        | The Next.js app server (web UI, API and background workers)      |
+| `chrome-sub`      | `ghcr.io/karakeep-app/karakeep-chrome` | Headless Chrome the crawler drives for page archival/screenshots |
+| `meilisearch-sub` | `getmeili/meilisearch`                 | Full-text and vector search index                                |
 
-`chrome-sub`'s image is built through the root `Dockerfile`, a layer that
-upgrades Debian's `ca-certificates` so Chrome's system store no longer holds
-the distrusted eMudhra (emSign ECC Root CA - G3) root. The other two images are
-unmodified.
+All three images are unmodified.
 
 `karakeep-sub` (which bundles `s6-overlay`) and `chrome-sub` (whose launcher
 backgrounds a `socat` port-forwarder before starting the browser) run their
 default entrypoints as PID 1 (`runAsInit`). `meilisearch-sub` runs
 `/bin/meilisearch` directly in `/meili_data`, bypassing the image's `tini`
-entrypoint. Architectures: x86_64, aarch64.
+entrypoint, with `MEILI_UPGRADE_DB=true` set permanently: when the package
+moves to a newer Meilisearch, the index is migrated in place on its first start
+instead of Meilisearch refusing to open it. A matching version ignores the
+flag, and it never allows an older Meilisearch to open a newer index.
+Architectures: x86_64, aarch64.
 
 ## Volume and Data Layout
 
@@ -233,6 +234,15 @@ Only the web interface's check is shown; the sidecars' checks gate it.
 `karakeep` requires both sidecars, so if Meilisearch or Chrome fails, the Web
 Interface check never starts; read the service logs for the sidecar's own
 error.
+
+A failed Meilisearch index upgrade does not show here. Meilisearch keeps
+answering `/health` and searches, but stops processing tasks for good, so new
+and edited bookmarks never reach the index. The logs show
+`Upgrade task failed, tasks won't be processed until the following issue is
+fixed`. To recover, stop the service, delete `data.ms` in the `meilisearch`
+directory of `main`, start it, then run **Reindex All Bookmarks** in
+Karakeep's Admin Settings → Background Jobs (and **Regenerate Embeddings for
+All Bookmarks** if Semantic Search is enabled).
 
 ## Backups and Restore
 

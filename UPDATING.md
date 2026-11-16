@@ -6,17 +6,19 @@ Upstream is tracked as three independently pinned prebuilt Docker images in
 - `images.karakeep.source.dockerTag` — the Karakeep app itself, tagged
   `ghcr.io/karakeep-app/karakeep:<version>` (no `v` prefix on the image tag,
   unlike the git release tag which does have one).
-- `images.chrome.source.dockerBuild.buildArgs.IMAGE` — `ghcr.io/karakeep-app/karakeep-chrome`
-  (built through the root `Dockerfile`, a temporary eMudhra CA-store layer;
-  remove it and restore `source: { dockerTag }` in the first bump whose image
-  has `ca-certificates` 20250419+deb13u1 or later: `docker run --rm --entrypoint sh <image> -c 'grep -c MIICTjCCAdOgAwIBAgIKPPYHqWhwDtqLhDAKBggqhkjOPQQDAzBr /etc/ssl/certs/ca-certificates.crt'` must print `0`),
-  tagged by its bundled Chrome version, not the Karakeep app version. Only
-  bump it when upstream's `docker/docker-compose.yml` moves its own pin (or
-  Chrome ships a security fix) — it does not track Karakeep releases.
+- `images.chrome.source.dockerTag` — `ghcr.io/karakeep-app/karakeep-chrome`,
+  tagged by its bundled Chrome version, not the Karakeep app version. Pin the
+  tag of upstream's `docker/chrome/Dockerfile` `GOOGLE_CHROME_VERSION` at the
+  matching Karakeep git tag (published as `<version>-r<n>`; take the highest
+  `-r`). Upstream's compose file uses the floating `release` tag, so it does
+  not move with Karakeep releases — check the Dockerfile.
 - `images.meilisearch.source.dockerTag` — `getmeili/meilisearch`, pinned to
   whatever version upstream's own `docker/docker-compose.yml` ships. Bump it
   in lockstep with that file, not independently — a mismatched Meilisearch
   version is the most common cause of a broken search index after an update.
+  `MEILI_UPGRADE_DB=true` in `startos/main.ts` stays set on purpose: it is
+  what lets a new pin open the old index (it migrates it in place), and it
+  does nothing when the version is unchanged. Don't remove it.
 
 ## Determining the upstream version
 
@@ -51,3 +53,14 @@ Upstream is tracked as three independently pinned prebuilt Docker images in
    Diff those, the `user`/`account`/`session` tables in `packages/db/schema.ts`,
    and the image's `/db_migrations` and
    `/app/apps/workers/node_modules/@karakeep/{db,trpc}` layout between tags.
+5. **After any Meilisearch pin change**, install the build over an existing
+   install with bookmarks and confirm the in-place index upgrade succeeded.
+   A failed upgrade leaves `/health` green but stops all indexing for good:
+   ```
+   start-cli package attach karakeep -n meilisearch-sub -- sh -c \
+     'K=$(tr "\0" "\n" </proc/$(pidof meilisearch)/environ | sed -n "s/^MEILI_MASTER_KEY=//p");
+      curl -s -H "Authorization: Bearer $K" "http://127.0.0.1:7700/tasks?types=upgradeDatabase"'
+   ```
+   The latest task must be `"status":"succeeded"`. (An attach shell doesn't
+   inherit the daemon's env, so the key is read from the running process.)
+   Then save a new bookmark and confirm search finds it.

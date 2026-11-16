@@ -15,29 +15,25 @@ export const manifest = setupManifest({
   // index data (main.ts).
   volumes: ['main', 'startos'],
   images: {
-    // Official multi-arch image. Confirmed on ghcr.io 2026-09-01: amd64 + arm64.
+    // Official multi-arch image. Confirmed on ghcr.io 2026-11-15: amd64 + arm64.
     karakeep: {
-      source: { dockerTag: 'ghcr.io/karakeep-app/karakeep:0.34.1' },
+      source: { dockerTag: 'ghcr.io/karakeep-app/karakeep:0.35.0' },
       arch: ['x86_64', 'aarch64'],
     },
     // Headless Chrome used by the crawler for screenshots/archival. Tagged by
     // its bundled Chrome version, not the karakeep app version. Confirmed on
-    // ghcr.io 2026-09-01: amd64 + arm64.
+    // ghcr.io 2026-11-15: amd64 + arm64.
     chrome: {
       source: {
-        dockerBuild: {
-          buildArgs: {
-            IMAGE: 'ghcr.io/karakeep-app/karakeep-chrome:154.0.8037.57-r1',
-          },
-        },
+        dockerTag: 'ghcr.io/karakeep-app/karakeep-chrome:157.0.8103.38-r1',
       },
       arch: ['x86_64', 'aarch64'],
     },
     // Search index. Pinned to the version upstream's own docker-compose.yml
-    // ships (docker/docker-compose.yml). Confirmed on Docker Hub 2026-09-01:
+    // ships (docker/docker-compose.yml). Confirmed on Docker Hub 2026-11-15:
     // amd64 + arm64.
     meilisearch: {
-      source: { dockerTag: 'getmeili/meilisearch:v1.41.0' },
+      source: { dockerTag: 'getmeili/meilisearch:v1.55.0' },
       arch: ['x86_64', 'aarch64'],
     },
   },

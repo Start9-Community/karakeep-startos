@@ -112,6 +112,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
         env: {
           MEILI_MASTER_KEY: meiliMasterKey,
           MEILI_NO_ANALYTICS: 'true',
+          // Left on for good: a newer pin migrates the index in place on its
+          // first start instead of refusing to open it. A matching version
+          // ignores it, and it never permits a downgrade.
+          MEILI_UPGRADE_DB: 'true',
         },
       },
       ready: {
