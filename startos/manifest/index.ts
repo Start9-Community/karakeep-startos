@@ -5,7 +5,7 @@ export const manifest = setupManifest({
   id: 'karakeep',
   title: 'Karakeep',
   license: 'AGPL-3.0',
-  packageRepo: 'https://github.com/Start9-Community/karakeep-startos',
+  packageRepo: 'https://github.com/Start9Labs/karakeep-startos',
   upstreamRepo: 'https://github.com/karakeep-app/karakeep',
   marketingUrl: 'https://karakeep.com',
   donationUrl: 'https://github.com/sponsors/MohamedBassem',
